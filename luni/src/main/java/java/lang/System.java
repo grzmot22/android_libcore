@@ -738,19 +738,9 @@ public final class System {
         VMRuntime runtime = VMRuntime.getRuntime();
         Properties p = new Properties();
 
-        String projectUrl = "http://www.android.com/";
-        String projectName = "The Android Project";
-
+        // Set non-static properties.
         p.put("java.boot.class.path", runtime.bootClassPath());
         p.put("java.class.path", runtime.classPath());
-
-        // None of these four are meaningful on Android, but these keys are guaranteed
-        // to be present for System.getProperty. For java.class.version, we use the maximum
-        // class file version that dx currently supports.
-        p.put("java.class.version", "50.0");
-        p.put("java.compiler", "");
-        p.put("java.ext.dirs", "");
-        p.put("java.version", "0");
 
         // TODO: does this make any sense? Should we just leave java.home unset?
         String javaHome = getenv("JAVA_HOME");
@@ -759,24 +749,7 @@ public final class System {
         }
         p.put("java.home", javaHome);
 
-        p.put("java.specification.name", "Dalvik Core Library");
-        p.put("java.specification.vendor", projectName);
-        p.put("java.specification.version", "0.9");
-
-        p.put("java.vendor", projectName);
-        p.put("java.vendor.url", projectUrl);
-        p.put("java.vm.name", "Dalvik");
-        p.put("java.vm.specification.name", "Dalvik Virtual Machine Specification");
-        p.put("java.vm.specification.vendor", projectName);
-        p.put("java.vm.specification.version", "0.9");
-        p.put("java.vm.vendor", projectName);
         p.put("java.vm.version", runtime.vmVersion());
-
-        p.put("java.runtime.name", "Android Runtime");
-        p.put("java.runtime.version", "0.9");
-        p.put("java.vm.vendor.url", projectUrl);
-
-        p.put("file.encoding", "UTF-8");
 
         try {
             StructPasswd passwd = Libcore.os.getpwuid(Libcore.os.getuid());
@@ -805,25 +778,22 @@ public final class System {
         parsePropertyAssignments(p, specialProperties());
 
         // Override built-in properties with settings from the command line.
+        // Note: it is not possible to override hardcoded values.
         parsePropertyAssignments(p, runtime.properties());
 
-        if (p.containsKey("file.separator")) {
-            logE("Ignoring command line argument: -Dfile.separator");
+        // Set static hardcoded properties.
+        // These come last, as they must be guaranteed to agree with what a backend compiler
+        // may assume when compiling the boot image on Android.
+        for (String[] pair : AndroidHardcodedSystemProperties.STATIC_PROPERTIES) {
+            if (p.containsKey(pair[0])) {
+                logE("Ignoring command line argument: -D" + pair[0]);
+            }
+            if (pair[1] == null) {
+                p.remove(pair[0]);
+            } else {
+                p.put(pair[0], pair[1]);
+            }
         }
-
-        if (p.containsKey("line.separator")) {
-            logE("Ignoring command line argument: -Dline.separator");
-        }
-
-        if (p.containsKey("path.separator")) {
-            logE("Ignoring command line argument: -Dpath.separator");
-        }
-
-        // We ignore values for "file.separator", "line.separator" and "path.separator" from
-        // the command line. They're fixed on the operating systems we support.
-        p.put("file.separator", FILE_SEPARATOR);
-        p.put("line.separator", LINE_SEPARATOR);
-        p.put("path.separator", PATH_SEPARATOR);
 
         return p;
     }
