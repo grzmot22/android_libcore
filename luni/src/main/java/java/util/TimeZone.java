@@ -74,8 +74,11 @@ public abstract class TimeZone implements Serializable, Cloneable {
      * proper.
      */
     private final static class CustomTimeZoneParser {
-        private static final Pattern CUSTOM_ZONE_ID_PATTERN =
-                Pattern.compile("^GMT[-+](\\d{1,2})(:?(\\d\\d))?$");
+        // Use a preload holder to allow compile-time initialization of TimeZone and dependents.
+        private static class NoImagePreloadHolder {
+            public static final Pattern CUSTOM_ZONE_ID_PATTERN =
+                    Pattern.compile("^GMT[-+](\\d{1,2})(:?(\\d\\d))?$");
+        }
 
         private CustomTimeZoneParser() {}
 
@@ -83,7 +86,7 @@ public abstract class TimeZone implements Serializable, Cloneable {
          * Returns a new SimpleTimeZone for an ID of the form "GMT[+|-]hh[[:]mm]", or null.
          */
         private static TimeZone getCustomTimeZone(String id) {
-            Matcher m = CUSTOM_ZONE_ID_PATTERN.matcher(id);
+            Matcher m = NoImagePreloadHolder.CUSTOM_ZONE_ID_PATTERN.matcher(id);
             if (!m.matches()) {
                 return null;
             }
